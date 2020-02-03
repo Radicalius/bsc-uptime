@@ -1,0 +1,33 @@
+<html>
+<head>
+  <title> Dashboard | Uptime </title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+</head>
+<body>
+  <center><h1> Dashboard </h1></center>
+  <table class="table table-striped">
+  <thead>
+    <tr>
+      <th scope="col">Status</th>
+      <th scope="col">Name</th>
+      <th scope="col">Last Ping</th>
+      <th scope="col">Uptime 24hr</th>
+      <th scope="col">Uptime 7d</th>
+      <th scope="col">Uptime 30d</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for i in monitors %}
+    <tr>
+      <th scope="row"><span class="badge badge-{{"success" if i[0] else "danger"}}">{{"UP" if i[0] else "DOWN"}}</span></th>
+      <td>{{i[1]}}</td>
+      <td>{{datetime.datetime.fromtimestamp(i[2]).strftime('%B %d, %Y %H:%M')}}</td>
+      <td>{{i[3]}}</td>
+      <td>{{i[2]}}</td>
+      <td>{{i[3]}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</body>
+</html>

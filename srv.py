@@ -1,9 +1,10 @@
-import sqlite3, time, sys, smtplib, ssl, _thread
+import sqlite3, time, sys, smtplib, ssl, _thread, datetime
 import flask
 import hashlib
-from flask import Flask, request
+from flask import Flask, request, render_template
 
 app = Flask(__name__)
+app.jinja_env.globals.update(datetime=datetime)
 
 ping_interval = 30
 
@@ -12,6 +13,14 @@ def click():
 
 def hash_key(key):
     return hashlib.sha256((key+"|"+str(click())).encode("utf8")).hexdigest()
+
+@app.route("/")
+def index():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    curr.execute("SELECT state, name, lastPing, up24h, up7d, up30d FROM monitors")
+    data = curr.fetchall()
+    return render_template("index.html", monitors=data)
 
 @app.route("/ping/<monitor>", methods=["POST"])
 def ping(monitor):
