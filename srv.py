@@ -3,8 +3,14 @@ import flask
 import hashlib
 from flask import Flask, request, render_template, redirect
 
+def perc(a,b):
+    return (a / (a+b)) * 100
+
+def big_perc(a,b):
+    return (a / (a+b)) * 100 + (b/(a+b)) * 100
+
 app = Flask(__name__)
-app.jinja_env.globals.update(datetime=datetime)
+app.jinja_env.globals.update(datetime=datetime,perc=perc,big_perc=big_perc)
 
 ping_interval = 30
 
@@ -19,7 +25,7 @@ def index():
     rand = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
     con = sqlite3.connect("main.db")
     curr = con.cursor()
-    curr.execute("SELECT state, name, lastPing, up24h, up7d, up30d FROM monitors")
+    curr.execute("SELECT state, name, lastPing, up24h, down24h, up7d, down7d, up30d, down30d FROM monitors")
     data = curr.fetchall()
     return render_template("index.html", monitors=data, rand=rand)
 
@@ -28,7 +34,7 @@ def add():
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     try:
-        curr.execute('INSERT INTO monitors VALUES (?, ?, "mr.zacharycotton@gmail.com", 0,0,0,0, true)', [request.form["name"], request.form["key"]])
+        curr.execute('INSERT INTO monitors VALUES (?, ?, "mr.zacharycotton@gmail.com", 0,0,0,0,0,0,0, true)', [request.form["name"], request.form["key"]])
         con.commit()
     except:
         print(sys.exc_info())
@@ -90,6 +96,8 @@ def mailer():
             if (time.time() - lastPing <= ping_interval and not state):
                 curr.execute("UPDATE monitors SET state = true WHERE name = ?", [name])
                 send_email(email, name, "UP")
+            if (not state):
+                curr.execute("UPDATE monitors SET down24h = down24h+1, down7d = down7d+1, down30d=down30d+1 WHERE name = ?", [name])
         con.commit()
         time.sleep(ping_interval)
 

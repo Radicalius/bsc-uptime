@@ -26,9 +26,19 @@
       <th scope="row"><span class="badge badge-{{"success" if i[0] else "danger"}}">{{"UP" if i[0] else "DOWN"}}</span></th>
       <td>{{i[1]}}</td>
       <td>{{datetime.datetime.fromtimestamp(i[2]).strftime('%B %d, %Y %H:%M')}}</td>
-      <td>{{i[3]}}</td>
-      <td>{{i[2]}}</td>
-      <td>{{i[3]}}</td>
+      <td><div class="progress">
+          <div class="progress-bar bg-success" role="progressbar" style="width: {{perc(i[3],i[4])}}%" aria-valuenow="{{perc(i[3],i[4])}}" aria-valuemin="0" aria-valuemax="100"></div>
+          <div class="progress-bar bg-danger" role="progressbar" style="width: {{ big_perc(i[4],i[3])}}%" aria-valuenow="{{big_perc(i[4],i[3])}}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </td>
+      <td><div class="progress">
+          <div class="progress-bar bg-success" role="progressbar" style="width: {{perc(i[5],i[6])}}%" aria-valuenow="{{perc(i[5],i[6])}}" aria-valuemin="0" aria-valuemax="100"></div>
+          <div class="progress-bar bg-danger" role="progressbar" style="width: {{ big_perc(i[5],i[6])}}%" aria-valuenow="{{big_perc(i[5],i[6])}}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div></td>
+      <td><div class="progress">
+          <div class="progress-bar bg-success" role="progressbar" style="width: {{perc(i[7],i[8])}}%" aria-valuenow="{{perc(i[7],i[8])}}" aria-valuemin="0" aria-valuemax="100"></div>
+          <div class="progress-bar bg-danger" role="progressbar" style="width: {{ big_perc(i[7],i[8])}}%" aria-valuenow="{{big_perc(i[7],i[8])}}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div></td>
       <td><div class="dropdown">
         <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           Settings
