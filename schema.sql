@@ -8,5 +8,3 @@ CREATE TABLE IF NOT EXISTS monitors (
   up30d INT,
   state BOOLEAN
 );
-
-INSERT INTO monitors VALUES ("kingman", "asdadggjasdhsadg", "mr.zacharycotton@gmail.com", 0,0,0,0, true);

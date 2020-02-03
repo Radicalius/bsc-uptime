@@ -1,7 +1,7 @@
-import sqlite3, time, sys, smtplib, ssl, _thread, datetime
+import sqlite3, time, sys, smtplib, ssl, _thread, datetime, random, string
 import flask
 import hashlib
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 
 app = Flask(__name__)
 app.jinja_env.globals.update(datetime=datetime)
@@ -16,11 +16,23 @@ def hash_key(key):
 
 @app.route("/")
 def index():
+    rand = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     curr.execute("SELECT state, name, lastPing, up24h, up7d, up30d FROM monitors")
     data = curr.fetchall()
-    return render_template("index.html", monitors=data)
+    return render_template("index.html", monitors=data, rand=rand)
+
+@app.route("/add", methods=["POST"])
+def add():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    try:
+        curr.execute('INSERT INTO monitors VALUES (?, ?, "mr.zacharycotton@gmail.com", 0,0,0,0, true)', [request.form["name"], request.form["key"]])
+        con.commit()
+    except:
+        print(sys.exc_info())
+    return redirect("/")
 
 @app.route("/ping/<monitor>", methods=["POST"])
 def ping(monitor):
@@ -78,6 +90,6 @@ if __name__ == "__main__":
     curr = con.cursor()
     curr.executescript(open("schema.sql", "r").read())
 
-    _thread.start_new(mailer, ())
+    #_thread.start_new(mailer, ())
 
     app.run(host="0.0.0.0", port="25522")
