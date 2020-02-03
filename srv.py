@@ -34,6 +34,14 @@ def add():
         print(sys.exc_info())
     return redirect("/")
 
+@app.route("/client/<monitor>")
+def client(monitor):
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    curr.execute("SELECT key FROM monitors WHERE name = ?", [monitor])
+    key = curr.fetchone()[0]
+    return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval)
+
 @app.route("/ping/<monitor>", methods=["POST"])
 def ping(monitor):
     con = sqlite3.connect("main.db")
@@ -75,6 +83,7 @@ def mailer():
         curr.execute("SELECT name, lastPing, email, state FROM monitors")
         for monitor in curr.fetchall():
             name, lastPing, email, state = monitor
+            print(time.time() - lastPing, ping_interval, state)
             if (time.time() - lastPing > ping_interval and state):
                 curr.execute("UPDATE monitors SET state = false WHERE name = ?", [name])
                 send_email(email, name, "DOWN")
@@ -90,6 +99,6 @@ if __name__ == "__main__":
     curr = con.cursor()
     curr.executescript(open("schema.sql", "r").read())
 
-    #_thread.start_new(mailer, ())
+    _thread.start_new(mailer, ())
 
     app.run(host="0.0.0.0", port="25522")

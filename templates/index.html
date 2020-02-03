@@ -29,6 +29,17 @@
       <td>{{i[3]}}</td>
       <td>{{i[2]}}</td>
       <td>{{i[3]}}</td>
+      <td><div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Settings
+        </button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <a class="dropdown-item" href="/client/{{i[1]}}" download="client.py">Download Client</a>
+          <a class="dropdown-item" href="#">Alert Contacts</a>
+          <a class="dropdown-item" href="#">Delete</a>
+        </div>
+      </td>
+</div>
     </tr>
     {% endfor %}
   </tbody>
