@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS monitors (
   lastPing INT,
   up24h INT,
   up7d INT,
-  up30d INT
+  up30d INT,
+  state BOOLEAN
 );
 
-INSERT INTO monitors VALUES ("kingman", "asdadggjasdhsadg", "mr.zacharycotton@gmail.com", 0,0,0,0);
+INSERT INTO monitors VALUES ("kingman", "asdadggjasdhsadg", "mr.zacharycotton@gmail.com", 0,0,0,0, true);

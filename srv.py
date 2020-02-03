@@ -1,11 +1,11 @@
-import sqlite3, time, sys
+import sqlite3, time, sys, smtplib, ssl, _thread
 import flask
 import hashlib
 from flask import Flask, request
 
 app = Flask(__name__)
 
-ping_interval = 300
+ping_interval = 30
 
 def click():
     return int(time.time() // ping_interval)
@@ -31,10 +31,44 @@ def ping(monitor):
         print(sys.exc_info())
         return "Invalid Request", 400
 
+
+def send_email(receiver_email, monitor, state):
+    port = 465
+    smtp_server = "smtp.gmail.com"
+    sender_email = "mr.zacharycotton@gmail.com"
+    password = open("credentials").read()
+    message = """\
+    Subject: Monitor {0} is {1}
+
+    Monitor {0} is {1}.""".format(monitor, state)
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message)
+
+def mailer():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    while True:
+        curr.execute("SELECT name, lastPing, email, state FROM monitors")
+        for monitor in curr.fetchall():
+            name, lastPing, email, state = monitor
+            if (time.time() - lastPing > ping_interval and state):
+                curr.execute("UPDATE monitors SET state = false WHERE name = ?", [name])
+                send_email(email, name, "DOWN")
+            if (time.time() - lastPing <= ping_interval and not state):
+                curr.execute("UPDATE monitors SET state = true WHERE name = ?", [name])
+                send_email(email, name, "UP")
+        con.commit()
+        time.sleep(ping_interval)
+
 if __name__ == "__main__":
 
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     curr.executescript(open("schema.sql", "r").read())
+
+    _thread.start_new(mailer, ())
 
     app.run(host="0.0.0.0", port="25522")
