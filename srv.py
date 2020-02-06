@@ -42,6 +42,21 @@ def add():
     con.commit()
     return redirect("/")
 
+@app.route("/edit", methods=["POST"])
+def edit():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    curr.execute('UPDATE monitors SET key = ?, email = ? WHERE name = ?', [request.form["key"], request.form["contacts"], request.form["name"]])
+    con.commit()
+    return redirect("/")
+
+@app.route("/monitor/<monitor>")
+def monitor(monitor):
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    curr.execute("SELECT name, key, email FROM monitors WHERE name = ?", [monitor])
+    return "|".join(curr.fetchone())
+
 @app.route("/client/<monitor>")
 def client(monitor):
     con = sqlite3.connect("main.db")
