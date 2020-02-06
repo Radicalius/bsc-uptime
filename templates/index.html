@@ -45,7 +45,7 @@
         </button>
         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
           <a class="dropdown-item" href="/client/{{i[1]}}" download="client.py">Download Client</a>
-          <a class="dropdown-item" href="#">Alert Contacts</a>
+          <a class="dropdown-item" href="#">Edit</a>
           <a class="dropdown-item" href="#">Delete</a>
         </div>
       </td>
@@ -73,6 +73,11 @@
           <div class="form-group">
             <label for="key">Key</label>
             <input name="key" type="text" class="form-control" id="key" value="{{ rand }}" required>
+          </div>
+          <div class="form-group">
+            <label for="contacts">Contacts</label>
+            <input name="contacts" type="text" class="form-control" id="contacts" required>
+            <small class="form-text text-muted">(Comma-Separated List of Emails)</small>
           </div>
       </div>
       <div class="modal-footer">
