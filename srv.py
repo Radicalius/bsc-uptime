@@ -101,12 +101,8 @@ def mailer():
         con.commit()
         time.sleep(ping_interval)
 
-if __name__ == "__main__":
+con = sqlite3.connect("main.db")
+curr = con.cursor()
+curr.executescript(open("schema.sql", "r").read())
 
-    con = sqlite3.connect("main.db")
-    curr = con.cursor()
-    curr.executescript(open("schema.sql", "r").read())
-
-    _thread.start_new(mailer, ())
-
-    app.run(host="0.0.0.0", port="25522")
+_thread.start_new(mailer, ())
