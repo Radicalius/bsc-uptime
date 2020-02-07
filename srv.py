@@ -1,7 +1,7 @@
-import sqlite3, time, sys, smtplib, ssl, _thread, datetime, random, string
+import sqlite3, time, sys, smtplib, ssl, _thread, datetime, random, string, random
 import flask
 import hashlib
-from flask import Flask, request, render_template, redirect
+from flask import Flask, request, render_template, redirect, make_response, flash
 from email.message import EmailMessage
 
 def perc(a,b):
@@ -15,6 +15,7 @@ def big_perc(a,b):
     return (a / (a+b)) * 100 + (b/(a+b)) * 100
 
 app = Flask(__name__)
+app.secret_key = "sadasdasdasdasdasdasdas"
 app.jinja_env.globals.update(datetime=datetime,perc=perc,big_perc=big_perc)
 
 ping_interval = 30
@@ -25,17 +26,61 @@ def click():
 def hash_key(key):
     return hashlib.sha256((key+"|"+str(click())).encode("utf8")).hexdigest()
 
-@app.route("/")
-def index():
-    rand = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+def rand():
+    chars = string.ascii_lowercase
+    return ''.join(random.choice(chars) for x in range(32))
+
+def validate(sessionId, curr):
+    if not sessionId:
+        return None
+    curr.execute("SELECT name FROM sessions WHERE id = ?", [sessionId])
+    users = curr.fetchall()
+    if not users:
+        return None
+    else:
+        return users[0]
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
     con = sqlite3.connect("main.db")
     curr = con.cursor()
+    if request.method == "GET":
+        return render_template("login.html")
+    else:
+        try:
+            curr.execute("SELECT password FROM users WHERE name = ?", [request.form["email"]])
+            hash = curr.fetchone()[0]
+            if hash == request.form["password"]:
+                sessionId = rand()
+                curr.execute("INSERT INTO sessions VALUES (?, ?)", [sessionId, request.form["email"]])
+                con.commit()
+                resp = make_response(redirect("/"))
+                resp.set_cookie("sessionId", sessionId)
+                return resp
+            else:
+                flash("Invalid Credentials")
+                return render_template("login.html")
+        except:
+            flash("Invalid Credentials")
+            return render_template("login.html")
+
+@app.route("/")
+def index():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    user = validate(request.cookies.get("sessionId"), curr)
+    if not user:
+        return redirect("/login")
+    rand = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
     curr.execute("SELECT state, name, lastPing, up24h, down24h, up7d, down7d, up30d, down30d FROM monitors")
     data = curr.fetchall()
     return render_template("index.html", monitors=data, rand=rand)
 
 @app.route("/add", methods=["POST"])
 def add():
+    user = validate(request.cookies.get("sessionId"), curr)
+    if not user:
+        return redirect("/login")
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     curr.execute('INSERT INTO monitors VALUES (?, ?, ?, 0,0,0,0,0,0,0,1)', [request.form["name"], request.form["key"], request.form["contacts"]])
@@ -44,6 +89,9 @@ def add():
 
 @app.route("/edit", methods=["POST"])
 def edit():
+    user = validate(request.cookies.get("sessionId"), curr)
+    if not user:
+        return redirect("/login")
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     curr.execute('UPDATE monitors SET key = ?, email = ? WHERE name = ?', [request.form["key"], request.form["contacts"], request.form["name"]])
@@ -52,6 +100,9 @@ def edit():
 
 @app.route("/monitor/<monitor>")
 def monitor(monitor):
+    user = validate(request.cookies.get("sessionId"), curr)
+    if not user:
+        return redirect("/login")
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     curr.execute("SELECT name, key, email FROM monitors WHERE name = ?", [monitor])
@@ -59,6 +110,9 @@ def monitor(monitor):
 
 @app.route("/client/<monitor>")
 def client(monitor):
+    user = validate(request.cookies.get("sessionId"), curr)
+    if not user:
+        return redirect("/login")
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     curr.execute("SELECT key FROM monitors WHERE name = ?", [monitor])

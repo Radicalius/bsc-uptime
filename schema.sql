@@ -11,3 +11,13 @@ CREATE TABLE IF NOT EXISTS monitors (
   down30d INT,
   state BOOLEAN
 );
+
+CREATE TABLE IF NOT EXISTS users (
+  name TEXT,
+  password TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT,
+  name TEXT
+);
