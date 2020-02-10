@@ -78,12 +78,23 @@ def index():
 
 @app.route("/add", methods=["POST"])
 def add():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
+    curr.execute('INSERT INTO monitors VALUES (?, ?, ?, 0,0,0,0,0,0,0,1)', [request.form["name"], request.form["key"], request.form["contacts"]])
+    con.commit()
+    return redirect("/")
+
+@app.route("/delete", methods=["POST"])
+def delete():
     con = sqlite3.connect("main.db")
     curr = con.cursor()
-    curr.execute('INSERT INTO monitors VALUES (?, ?, ?, 0,0,0,0,0,0,0,1)', [request.form["name"], request.form["key"], request.form["contacts"]])
+    user = validate(request.cookies.get("sessionId"), curr)
+    if not user:
+        return redirect("/login")
+    curr.execute("DELETE FROM monitors WHERE name = ?", [request.form["name"]])
     con.commit()
     return redirect("/")
 
