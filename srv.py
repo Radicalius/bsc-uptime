@@ -38,7 +38,7 @@ def validate(sessionId, curr):
     if not users:
         return None
     else:
-        return users[0]
+        return users[0][0]
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -64,6 +64,17 @@ def login():
             flash("Invalid Credentials")
             return render_template("login.html")
 
+@app.route("/logout", methods=["POST"])
+def logout():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
+    user = validate(request.cookies.get("sessionId"), curr)
+    if not user:
+        return redirect("/login")
+    curr.execute("DELETE FROM sessions WHERE name = ?", [user])
+    con.commit()
+    return redirect("/login")
+
 @app.route("/")
 def index():
     con = sqlite3.connect("main.db")
@@ -72,9 +83,9 @@ def index():
     if not user:
         return redirect("/login")
     rand = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    curr.execute("SELECT state, name, lastPing, up24h, down24h, up7d, down7d, up30d, down30d FROM monitors")
+    curr.execute("SELECT state, name, lastPing, up24h, down24h, up7d, down7d, up30d, down30d FROM monitors WHERE user = ?", [user])
     data = curr.fetchall()
-    return render_template("index.html", monitors=data, rand=rand)
+    return render_template("index.html", monitors=data, rand=rand, user=user)
 
 @app.route("/add", methods=["POST"])
 def add():
@@ -83,7 +94,7 @@ def add():
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute('INSERT INTO monitors VALUES (?, ?, ?, 0,0,0,0,0,0,0,1)', [request.form["name"], request.form["key"], request.form["contacts"]])
+    curr.execute('INSERT INTO monitors VALUES (?, ?, ?, ?, 0,0,0,0,0,0,0,1)', [request.form["name"], request.form["key"], user, request.form["contacts"]])
     con.commit()
     return redirect("/")
 
@@ -94,39 +105,39 @@ def delete():
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute("DELETE FROM monitors WHERE name = ?", [request.form["name"]])
+    curr.execute("DELETE FROM monitors WHERE name = ? AND user = ?", [request.form["name"], user])
     con.commit()
     return redirect("/")
 
 @app.route("/edit", methods=["POST"])
 def edit():
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    con = sqlite3.connect("main.db")
-    curr = con.cursor()
-    curr.execute('UPDATE monitors SET key = ?, email = ? WHERE name = ?', [request.form["key"], request.form["contacts"], request.form["name"]])
+    curr.execute('UPDATE monitors SET key = ?, email = ? WHERE name = ? AND user = ?', [request.form["key"], request.form["contacts"], request.form["name"], user])
     con.commit()
     return redirect("/")
 
 @app.route("/monitor/<monitor>")
 def monitor(monitor):
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    con = sqlite3.connect("main.db")
-    curr = con.cursor()
-    curr.execute("SELECT name, key, email FROM monitors WHERE name = ?", [monitor])
+    curr.execute("SELECT name, key, email FROM monitors WHERE name = ? AND user = ?", [monitor, user])
     return "|".join(curr.fetchone())
 
 @app.route("/client/<monitor>")
 def client(monitor):
+    con = sqlite3.connect("main.db")
+    curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    con = sqlite3.connect("main.db")
-    curr = con.cursor()
-    curr.execute("SELECT key FROM monitors WHERE name = ?", [monitor])
+    curr.execute("SELECT key FROM monitors WHERE name = ? AND user = ?", [monitor, user])
     key = curr.fetchone()[0]
     return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval)
 
