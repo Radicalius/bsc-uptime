@@ -1,8 +1,10 @@
-import sqlite3, time, sys, smtplib, ssl, _thread, datetime, random, string, random
+import sqlite3, time, sys, smtplib, ssl, _thread, datetime, random, string, random, os
 import flask
 import hashlib
 from flask import Flask, request, render_template, redirect, make_response, flash
 from email.message import EmailMessage
+import psycopg2
+import urllib.parse as urlparse
 
 def perc(a,b):
     if (a + b == 0):
@@ -33,7 +35,7 @@ app.secret_key = rand()
 def validate(sessionId, curr):
     if not sessionId:
         return None
-    curr.execute("SELECT name FROM sessions WHERE id = ?", [sessionId])
+    curr.execute("SELECT name FROM sessions WHERE id = %s", [sessionId])
     users = curr.fetchall()
     if not users:
         return None
@@ -42,17 +44,17 @@ def validate(sessionId, curr):
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     if request.method == "GET":
         return render_template("login.html")
     else:
         try:
-            curr.execute("SELECT password FROM users WHERE name = ?", [request.form["email"]])
+            curr.execute("SELECT password FROM users WHERE name = %s", [request.form["email"]])
             hash = curr.fetchone()[0]
             if hash == request.form["password"]:
                 sessionId = rand()
-                curr.execute("INSERT INTO sessions VALUES (?, ?)", [sessionId, request.form["email"]])
+                curr.execute("INSERT INTO sessions VALUES (%s, %s)", [sessionId, request.form["email"]])
                 con.commit()
                 resp = make_response(redirect("/"))
                 resp.set_cookie("sessionId", sessionId)
@@ -66,91 +68,91 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute("DELETE FROM sessions WHERE name = ?", [user])
+    curr.execute("DELETE FROM sessions WHERE name = %s", [user])
     con.commit()
     return redirect("/login")
 
 @app.route("/")
 def index():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
     rand = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    curr.execute("SELECT state, name, lastPing, up24h, down24h, up7d, down7d, up30d, down30d FROM monitors WHERE user = ?", [user])
+    curr.execute("SELECT state, name, lastPing, up24h, down24h, up7d, down7d, up30d, down30d FROM monitors WHERE user_ = %s", [user])
     data = curr.fetchall()
     return render_template("index.html", monitors=data, rand=rand, user=user)
 
 @app.route("/add", methods=["POST"])
 def add():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute('INSERT INTO monitors VALUES (?, ?, ?, ?, 0,0,0,0,0,0,0,1)', [request.form["name"], request.form["key"], user, request.form["contacts"]])
+    curr.execute('INSERT INTO monitors VALUES (%s, %s, %s, %s, 0,0,0,0,0,0,0,true)', [request.form["name"], request.form["key"], user, request.form["contacts"]])
     con.commit()
     return redirect("/")
 
 @app.route("/delete", methods=["POST"])
 def delete():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute("DELETE FROM monitors WHERE name = ? AND user = ?", [request.form["name"], user])
+    curr.execute("DELETE FROM monitors WHERE name = %s AND user_ = %s", [request.form["name"], user])
     con.commit()
     return redirect("/")
 
 @app.route("/edit", methods=["POST"])
 def edit():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute('UPDATE monitors SET key = ?, email = ? WHERE name = ? AND user = ?', [request.form["key"], request.form["contacts"], request.form["name"], user])
+    curr.execute('UPDATE monitors SET key = %s, email = %s WHERE name = %s AND user_ = %s', [request.form["key"], request.form["contacts"], request.form["name"], user])
     con.commit()
     return redirect("/")
 
 @app.route("/monitor/<monitor>")
 def monitor(monitor):
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute("SELECT name, key, email FROM monitors WHERE name = ? AND user = ?", [monitor, user])
+    curr.execute("SELECT name, key, email FROM monitors WHERE name = %s AND user_ = %s", [monitor, user])
     return "|".join(curr.fetchone())
 
 @app.route("/client/<monitor>")
 def client(monitor):
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
         return redirect("/login")
-    curr.execute("SELECT key FROM monitors WHERE name = ? AND user = ?", [monitor, user])
+    curr.execute("SELECT key FROM monitors WHERE name = %s AND user_ = %s", [monitor, user])
     key = curr.fetchone()[0]
     return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval,user=user)
 
 @app.route("/ping", methods=["POST"])
 def ping():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     try:
-        curr.execute("SELECT key FROM monitors WHERE user = ? AND name = ?", [request.get_json()["user"], request.get_json()["monitor"]])
+        curr.execute("SELECT key FROM monitors WHERE user_ = %s AND name = %s", [request.get_json()["user"], request.get_json()["monitor"]])
         key = curr.fetchone()[0]
         print(key)
         if (request.get_json()["credentials"] == hash_key(key)):
-            curr.execute("UPDATE monitors SET lastPing = ?, up24h = up24h+1, up7d = up7d+1, up30d=up30d+1 WHERE user = ? AND name = ?", [int(time.time()), request.get_json()["user"], request.get_json()["monitor"]])
+            curr.execute("UPDATE monitors SET lastPing = %s, up24h = up24h+1, up7d = up7d+1, up30d=up30d+1 WHERE user_ = %s AND name = %s", [int(time.time()), request.get_json()["user"], request.get_json()["monitor"]])
             con.commit()
             return "", 201
         else:
@@ -164,7 +166,7 @@ def send_email(receiver_email, monitor, state):
     port = 465
     smtp_server = "smtp.gmail.com"
     sender_email = "bscuptime@gmail.com"
-    password = open("credentials").read()
+    password = open("credentials").read().split("\n")[0]
     message = EmailMessage()
     message["From"] = "bscuptime@gmail.com"
     message["To"] = receiver_email
@@ -176,27 +178,44 @@ def send_email(receiver_email, monitor, state):
         server.send_message(message)
 
 def mailer():
-    con = sqlite3.connect("main.db")
+    con = connect()
     curr = con.cursor()
     while True:
         curr.execute("SELECT name, lastPing, email, state FROM monitors")
         for monitor in curr.fetchall():
             name, lastPing, email, state = monitor
             if (time.time() - lastPing > ping_interval and state):
-                curr.execute("UPDATE monitors SET state = 0 WHERE name = ?", [name])
+                curr.execute("UPDATE monitors SET state = false WHERE name = %s", [name])
                 for i in str(email).split(","):
                     send_email(i.strip(), name, "DOWN")
             if (time.time() - lastPing <= ping_interval and not state):
-                curr.execute("UPDATE monitors SET state = 1 WHERE name = ?", [name])
+                curr.execute("UPDATE monitors SET state = true WHERE name = %s", [name])
                 for i in str(email).split(","):
                     send_email(i.strip(), name, "UP")
             if (not state):
-                curr.execute("UPDATE monitors SET down24h = down24h+1, down7d = down7d+1, down30d=down30d+1 WHERE name = ?", [name])
+                curr.execute("UPDATE monitors SET down24h = down24h+1, down7d = down7d+1, down30d=down30d+1 WHERE name = %s", [name])
         con.commit()
         time.sleep(ping_interval)
 
-con = sqlite3.connect("main.db")
+def connect():
+    url = urlparse.urlparse(os.environ['DATABASE_URL'])
+    dbname = url.path[1:]
+    user = url.username
+    password = url.password
+    host = url.hostname
+    port = url.port
+
+    return psycopg2.connect(
+            dbname=dbname,
+            user=user,
+            password=password,
+            host=host,
+            port=port
+            )
+
+con = connect()
 curr = con.cursor()
-curr.executescript(open("schema.sql", "r").read())
+curr.execute(open("schema.sql", "r").read())
+con.commit()
 
 _thread.start_new(mailer, ())

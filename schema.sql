@@ -1,8 +1,14 @@
+CREATE TABLE IF NOT EXISTS users (
+  name VARCHAR(50),
+  password VARCHAR(50),
+  PRIMARY KEY(name)
+);
+
 CREATE TABLE IF NOT EXISTS monitors (
-  name TEXT,
-  key TEXT,
-  user TEXT,
-  email TEXT,
+  name VARCHAR(50),
+  key VARCHAR(50),
+  user_ VARCHAR(50) REFERENCES users(name),
+  email VARCHAR(50),
   lastPing INT,
   up24h INT,
   down24h INT,
@@ -10,17 +16,10 @@ CREATE TABLE IF NOT EXISTS monitors (
   down7d INT,
   up30d INT,
   down30d INT,
-  state BOOLEAN,
-  FOREIGN KEY(user) REFERENCES users(name)
-);
-
-CREATE TABLE IF NOT EXISTS users (
-  name TEXT PRIMARY KEY,
-  password TEXT
+  state BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
-  id TEXT,
-  name TEXT,
-  FOREIGN KEY(name) REFERENCES users(name)
+  id VARCHAR(50),
+  name VARCHAR(50) REFERENCES users(name)
 );
