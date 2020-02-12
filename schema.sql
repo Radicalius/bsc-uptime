@@ -25,3 +25,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   id VARCHAR(50),
   name VARCHAR(50) REFERENCES users(name)
 );
+
+CREATE TABLE IF NOT EXISTS credentials (
+  key VARCHAR(50),
+  value VARCHAR(50)
+)

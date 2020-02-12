@@ -166,7 +166,7 @@ def send_email(receiver_email, monitor, state):
     port = 465
     smtp_server = "smtp.gmail.com"
     sender_email = "bscuptime@gmail.com"
-    password = open("credentials").read().split("\n")[0]
+    password = email_password
     message = EmailMessage()
     message["From"] = "bscuptime@gmail.com"
     message["To"] = receiver_email
@@ -217,5 +217,8 @@ con = connect()
 curr = con.cursor()
 curr.execute(open("schema.sql", "r").read())
 con.commit()
+
+curr.execute("SELECT value FROM credentials WHERE key = 'email'")
+email_password = curr.fetchall()[0][0]
 
 _thread.start_new(mailer, ())
