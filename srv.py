@@ -15,9 +15,7 @@ def big_perc(a,b):
     return (a / (a+b)) * 100 + (b/(a+b)) * 100
 
 app = Flask(__name__)
-app.secret_key = "sadasdasdasdasdasdasdas"
 app.jinja_env.globals.update(datetime=datetime,perc=perc,big_perc=big_perc)
-
 ping_interval = 30
 
 def click():
@@ -29,6 +27,8 @@ def hash_key(key):
 def rand():
     chars = string.ascii_lowercase
     return ''.join(random.choice(chars) for x in range(32))
+
+app.secret_key = rand()
 
 def validate(sessionId, curr):
     if not sessionId:
@@ -139,24 +139,24 @@ def client(monitor):
         return redirect("/login")
     curr.execute("SELECT key FROM monitors WHERE name = ? AND user = ?", [monitor, user])
     key = curr.fetchone()[0]
-    return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval)
+    return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval,user=user)
 
-@app.route("/ping/<monitor>", methods=["POST"])
-def ping(monitor):
+@app.route("/ping", methods=["POST"])
+def ping():
     con = sqlite3.connect("main.db")
     curr = con.cursor()
     try:
-        curr.execute("SELECT key FROM monitors WHERE name = ?", [monitor])
+        curr.execute("SELECT key FROM monitors WHERE user = ? AND name = ?", [request.get_json()["user"], request.get_json()["monitor"]])
         key = curr.fetchone()[0]
         print(key)
         if (request.get_json()["credentials"] == hash_key(key)):
-            curr.execute("UPDATE monitors SET lastPing = ?, up24h = up24h+1, up7d = up7d+1, up30d=up30d+1", [int(time.time())])
+            curr.execute("UPDATE monitors SET lastPing = ?, up24h = up24h+1, up7d = up7d+1, up30d=up30d+1 WHERE user = ? AND name = ?", [int(time.time()), request.get_json()["user"], request.get_json()["monitor"]])
             con.commit()
             return "", 201
         else:
             return "Unauthorized", 403
     except:
-        print(sys.exc_info())
+        raise Exception(sys.exc_info())
         return "Invalid Request", 400
 
 
