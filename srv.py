@@ -18,7 +18,7 @@ def big_perc(a,b):
 
 app = Flask(__name__)
 app.jinja_env.globals.update(datetime=datetime,perc=perc,big_perc=big_perc)
-ping_interval = 30
+ping_interval = 60
 
 def click():
     return int(time.time() // ping_interval)
@@ -141,7 +141,7 @@ def client(monitor):
         return redirect("/login")
     curr.execute("SELECT key FROM monitors WHERE name = %s AND user_ = %s", [monitor, user])
     key = curr.fetchone()[0]
-    return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval,user=user)
+    return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval / 3, user=user)
 
 @app.route("/ping", methods=["POST"])
 def ping():
