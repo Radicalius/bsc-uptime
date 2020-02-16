@@ -197,13 +197,22 @@ def mailer():
         con.commit()
         time.sleep(ping_interval)
 
+local = os.environ.get("LOCAL_DB")
+
 def connect():
-    url = urlparse.urlparse(os.environ['DATABASE_URL'])
-    dbname = url.path[1:]
-    user = url.username
-    password = url.password
-    host = url.hostname
-    port = url.port
+    if not local:
+        url = urlparse.urlparse(os.environ['DATABASE_URL'])
+        dbname = url.path[1:]
+        user = url.username
+        password = url.password
+        host = url.hostname
+        port = url.port
+    else:
+        dbname = "uptime"
+        user = "uptime"
+        password = "uptime"
+        host = "localhost"
+        port = 5432
 
     return psycopg2.connect(
             dbname=dbname,
@@ -218,7 +227,10 @@ curr = con.cursor()
 curr.execute(open("schema.sql", "r").read())
 con.commit()
 
-curr.execute("SELECT value FROM credentials WHERE key = 'email'")
-email_password = curr.fetchall()[0][0]
+if not local:
+    curr.execute("SELECT value FROM credentials WHERE key = 'email'")
+    email_password = curr.fetchall()[0][0]
+else:
+    email_password = open("credentials", "r").read()
 
 _thread.start_new(mailer, ())
