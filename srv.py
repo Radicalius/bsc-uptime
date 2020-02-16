@@ -151,7 +151,7 @@ def ping():
         curr.execute("SELECT key FROM monitors WHERE user_ = %s AND name = %s", [request.get_json()["user"], request.get_json()["monitor"]])
         key = curr.fetchone()[0]
         print(key)
-        if (request.get_json()["credentials"] == hash_key(key)):
+        if (request.get_json()["credentials"] == key):
             curr.execute("UPDATE monitors SET lastPing = %s, up24h = up24h+1, up7d = up7d+1, up30d=up30d+1 WHERE user_ = %s AND name = %s", [int(time.time()), request.get_json()["user"], request.get_json()["monitor"]])
             con.commit()
             return "", 201
