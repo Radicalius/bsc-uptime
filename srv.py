@@ -194,6 +194,16 @@ def mailer():
                     send_email(i.strip(), name, "UP")
             if (not state):
                 curr.execute("UPDATE monitors SET down24h = down24h+1, down7d = down7d+1, down30d=down30d+1 WHERE name = %s", [name])
+
+        if (time.time() % (24 * 3600) == 0):
+            curr.execute("UPDATE monitors SET down24h = 0, up24h = 0")
+
+        if (time.time() % (7 * 24 * 3699) == 0):
+            curr.execute("UPDATE monitors SET down7d = 0, up7d = 0")
+
+        if (time.time() % (30 * 24 * 3699) == 0):
+            curr.execute("UPDATE monitors SET down30d = 0, up30d = 0")
+
         con.commit()
         time.sleep(ping_interval)
 
