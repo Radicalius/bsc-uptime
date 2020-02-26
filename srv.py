@@ -1,4 +1,4 @@
-import sqlite3, time, sys, smtplib, ssl, _thread, datetime, random, string, random, os
+import sqlite3, time, sys, smtplib, ssl, _thread, datetime, random, string, random, os, datetime
 import flask
 import hashlib
 from flask import Flask, request, render_template, redirect, make_response, flash
@@ -195,14 +195,15 @@ def mailer():
             if (not state):
                 curr.execute("UPDATE monitors SET down24h = down24h+1, down7d = down7d+1, down30d=down30d+1 WHERE name = %s", [name])
 
-        if (time.time() % (24 * 3600) == 0):
+        now = datetime.datetime.now()
+        if (now.hour == 0 and now.minute in [0,1,2]):
             curr.execute("UPDATE monitors SET down24h = 0, up24h = 0")
 
-        if (time.time() % (7 * 24 * 3699) == 0):
-            curr.execute("UPDATE monitors SET down7d = 0, up7d = 0")
+            if (now.weekday() == 0):
+                curr.execute("UPDATE monitors SET down7d = 0, up7d = 0")
 
-        if (time.time() % (30 * 24 * 3699) == 0):
-            curr.execute("UPDATE monitors SET down30d = 0, up30d = 0")
+            if (now.day == 1):
+                curr.execute("UPDATE monitors SET down30d = 0, up30d = 0")
 
         con.commit()
         time.sleep(ping_interval)
