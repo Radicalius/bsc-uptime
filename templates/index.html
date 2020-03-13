@@ -30,6 +30,20 @@
       value.value = name;
       form.submit();
     }
+
+   function generateRandomCode() {
+      var code = "";
+      for (i = 0; i < 32; i++){
+	 code += String.fromCharCode(48 + Math.floor(Math.random()*(122-48)));
+      }
+      return code;
+   }
+
+   function setCode() {
+	   var elem = document.getElementById("keyAdd")
+	   elem.value = generateRandomCode();
+   }
+
   </script>
 </head>
 <body>
@@ -63,7 +77,7 @@
       <th scope="col">Uptime 24hr</th>
       <th scope="col">Uptime 7d</th>
       <th scope="col">Uptime 30d</th>
-      <th scope="col"> <button type="button" class="btn btn-success" data-toggle="modal" data-target="#exampleModalAdd">Add Monitor</button> </th>
+      <th scope="col"> <button type="button" class="btn btn-success" data-toggle="modal" data-target="#exampleModalAdd" onclick="javascript: setCode();">Add Monitor</button> </th>
     </tr>
   </thead>
   <tbody>
