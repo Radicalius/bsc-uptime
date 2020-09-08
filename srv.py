@@ -5,6 +5,7 @@ from flask import Flask, request, render_template, redirect, make_response, flas
 from email.message import EmailMessage
 import psycopg2
 import urllib.parse as urlparse
+import requests
 
 def perc(a,b):
     if (a + b == 0):
@@ -207,6 +208,14 @@ def mailer():
         con.commit()
         time.sleep(ping_interval)
 
+def example():
+    while True:
+        try:
+            requests.post("https://bscuptime.herokuapp.com/ping", json={"user": "admin@bscuptime.com", "monitor": "always_up", "credentials": "H3lBTfWhRH9KS1oCINrM:cZ[BiyaHBPM" })
+        except:
+            pass
+        time.sleep(20)
+
 local = os.environ.get("LOCAL_DB")
 
 def connect():
@@ -244,3 +253,4 @@ else:
     email_password = open("credentials", "r").read()
 
 _thread.start_new(mailer, ())
+_thread.start_new(example, ())
