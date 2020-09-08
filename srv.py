@@ -7,6 +7,8 @@ import psycopg2
 import urllib.parse as urlparse
 import requests
 
+domain = "https://bscuptime.nlogn.blog"
+
 def perc(a,b):
     if (a + b == 0):
         return 0
@@ -57,7 +59,7 @@ def login():
                 sessionId = rand()
                 curr.execute("INSERT INTO sessions VALUES (%s, %s)", [sessionId, request.form["email"]])
                 con.commit()
-                resp = make_response(redirect("/"))
+                resp = make_response(redirect(domain+"/"))
                 resp.set_cookie("sessionId", sessionId)
                 return resp
             else:
@@ -73,10 +75,10 @@ def logout():
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
-        return redirect("/login")
+        return redirect(domain+"/login")
     curr.execute("DELETE FROM sessions WHERE name = %s", [user])
     con.commit()
-    return redirect("/login")
+    return redirect(domain+"/login")
 
 @app.route("/")
 def index():
@@ -84,7 +86,7 @@ def index():
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
-        return redirect("/login")
+        return redirect(domain+"/login")
     rand = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
     curr.execute("SELECT state, name, lastPing, up24h, down24h, up7d, down7d, up30d, down30d FROM monitors WHERE user_ = %s", [user])
     data = curr.fetchall()
@@ -96,10 +98,10 @@ def add():
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
-        return redirect("/login")
+        return redirect(domain+"/login")
     curr.execute('INSERT INTO monitors VALUES (%s, %s, %s, %s, 0,0,0,0,0,0,0,true)', [request.form["name"], request.form["key"], user, request.form["contacts"]])
     con.commit()
-    return redirect("/")
+    return redirect(domain+"/")
 
 @app.route("/delete", methods=["POST"])
 def delete():
@@ -107,10 +109,10 @@ def delete():
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
-        return redirect("/login")
+        return redirect(domain+"/login")
     curr.execute("DELETE FROM monitors WHERE name = %s AND user_ = %s", [request.form["name"], user])
     con.commit()
-    return redirect("/")
+    return redirect(domain+"/")
 
 @app.route("/edit", methods=["POST"])
 def edit():
@@ -118,10 +120,10 @@ def edit():
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
-        return redirect("/login")
+        return redirect(domain+"/login")
     curr.execute('UPDATE monitors SET key = %s, email = %s WHERE name = %s AND user_ = %s', [request.form["key"], request.form["contacts"], request.form["name"], user])
     con.commit()
-    return redirect("/")
+    return redirect(domain+"/")
 
 @app.route("/monitor/<monitor>")
 def monitor(monitor):
@@ -129,7 +131,7 @@ def monitor(monitor):
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
-        return redirect("/login")
+        return redirect(domain+"/login")
     curr.execute("SELECT name, key, email FROM monitors WHERE name = %s AND user_ = %s", [monitor, user])
     return "|".join(curr.fetchone())
 
@@ -139,7 +141,7 @@ def client(monitor):
     curr = con.cursor()
     user = validate(request.cookies.get("sessionId"), curr)
     if not user:
-        return redirect("/login")
+        return redirect(domain+"/login")
     curr.execute("SELECT key FROM monitors WHERE name = %s AND user_ = %s", [monitor, user])
     key = curr.fetchone()[0]
     return render_template("client.py", key=key, monitor=monitor, ping_interval=ping_interval / 3, user=user)
